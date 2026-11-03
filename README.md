@@ -26,9 +26,9 @@ Turning an API idea into a deployable system usually means jumping between a dat
 5. Run syntax, health, and runtime checks.
 6. Download a starter/configuration bundle or update a GitHub repository.
 
-## Demo
+## A quick demo
 
-<video src="docs/My%20Movie.mp4" controls width="100%">
+<video src="https://github.com/gopalcb/api-builder-agent/raw/refs/heads/main/docs/My%20Movie.mp4" controls preload="metadata" width="100%">
   Your browser does not support embedded video. <a href="docs/My%20Movie.mp4">Watch the demo video</a>.
 </video>
 
