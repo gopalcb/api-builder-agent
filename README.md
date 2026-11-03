@@ -26,6 +26,14 @@ Turning an API idea into a deployable system usually means jumping between a dat
 5. Run syntax, health, and runtime checks.
 6. Download a starter/configuration bundle or update a GitHub repository.
 
+## Demo
+
+<video src="docs/My%20Movie.mp4" controls width="100%">
+  Your browser does not support embedded video. <a href="docs/My%20Movie.mp4">Watch the demo video</a>.
+</video>
+
+[Watch the demo video directly](docs/My%20Movie.mp4) if the embedded player is unavailable.
+
 ## Architecture at a glance
 
 ```mermaid
