@@ -12,8 +12,9 @@ And the Angular application provides a visual way to define projects, entities, 
 
 ## A quick demo
 
-<video src="docs/My Movie.mp4" width="100%" controls></video>
-
+<video src="docs/My%20Movie.mp4" controls preload="metadata" width="100%">
+  Your browser does not support embedded video.
+</video>
 
 ## Why it exists
 
@@ -25,14 +26,6 @@ Turning an API idea into a deployable system usually means jumping between a dat
 4. Review and save the proposal with revision protection.
 5. Run syntax, health, and runtime checks.
 6. Download a starter/configuration bundle or update a GitHub repository.
-
-## A quick demo
-
-<video src="https://github.com/gopalcb/api-builder-agent/raw/refs/heads/main/docs/My%20Movie.mp4" controls preload="metadata" width="100%">
-  Your browser does not support embedded video. <a href="docs/My%20Movie.mp4">Watch the demo video</a>.
-</video>
-
-[Watch the demo video directly](docs/My%20Movie.mp4) if the embedded player is unavailable.
 
 ## Architecture at a glance
 
