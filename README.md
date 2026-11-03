@@ -12,7 +12,7 @@ And the Angular application provides a visual way to define projects, entities, 
 
 ## A quick demo
 
-<p><a href="https://1drv.ms/v/c/cb8c3cac74469fbc/IQBVdBaZxyN6SoIDRtqvrQEkAQYeINH9USdrQLoYCwdTlls?e=xuUD2q">▶ Watch the API Builder demo on OneDrive</a></p>
+<p><a href="https://1drv.ms/v/c/cb8c3cac74469fbc/IQCO688UzI0LQq7YokJ2XspGARNya53c8egrHBySqUNORAc?e=oECXIF">▶ Watch the API Builder demo on OneDrive</a></p>
 
 
 ## Why it exists
