@@ -12,7 +12,7 @@ And the Angular application provides a visual way to define projects, entities, 
 
 ## A quick demo
 
-<iframe src="https://1drv.ms/v/c/cb8c3cac74469fbc/IQRVdBaZxyN6SoIDRtqvrQEkAe8OL3up5JjYsx6uo2OZI84" width="1280" height="720" frameborder="0" scrolling="no" allowfullscreen></iframe>
+<p><a href="https://gopalcb.github.io/api-builder-agent/demo.html">▶ Watch the API Builder demo</a></p>
 
 ## Why it exists
 
