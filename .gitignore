@@ -14,7 +14,6 @@ instance/
 
 # Generated demos, test runs, and local media are not source artifacts.
 generated-artifacts/
-docs/
 *.egg-info/
 
 logs/*
