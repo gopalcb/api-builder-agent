@@ -1,0 +1,74 @@
+<div class="observability-layout">
+  <wo-card>
+    <form class="wo-stack" novalidate (ngSubmit)="save()" [attr.aria-busy]="busy()">
+      <h2 class="wo-card-title">Configure OpenTelemetry</h2>
+      <fieldset class="observability-fields" [disabled]="busy() || !state.loaded">
+        <label class="observability-check" for="otel-enabled"><input id="otel-enabled" name="enabled" type="checkbox" [(ngModel)]="state.configuration.enabled" />Enable tracing for this project</label>
+        <div class="wo-field">
+          <label class="wo-field-label" for="otel-service">Service name</label>
+          <input id="otel-service" name="service" [(ngModel)]="state.configuration.service_name" maxlength="80" required [attr.aria-invalid]="invalidField() === 'otel-service'" aria-describedby="otel-error" />
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="otel-namespace">Service namespace</label>
+          <input id="otel-namespace" name="namespace" [(ngModel)]="state.configuration.service_namespace" maxlength="80" required [attr.aria-invalid]="invalidField() === 'otel-namespace'" aria-describedby="otel-error" />
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="otel-environment">Environment</label>
+          <input id="otel-environment" name="environment" [(ngModel)]="state.configuration.environment" maxlength="40" required [attr.aria-invalid]="invalidField() === 'otel-environment'" aria-describedby="otel-error" />
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="otel-endpoint">OTLP HTTP trace endpoint</label>
+          <input id="otel-endpoint" name="endpoint" type="url" [(ngModel)]="state.configuration.endpoint" required [attr.aria-invalid]="invalidField() === 'otel-endpoint'" aria-describedby="otel-endpoint-help otel-error" />
+          <p class="wo-field-hint" id="otel-endpoint-help">Localhost only. Include the port and /v1/traces. Protocol: HTTP/protobuf.</p>
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="otel-sampling">Sampling ratio</label>
+          <input id="otel-sampling" name="sampling" type="number" min="0" max="1" step="0.1" [(ngModel)]="state.configuration.sample_ratio" required [attr.aria-invalid]="invalidField() === 'otel-sampling'" aria-describedby="otel-sampling-help otel-error" />
+          <p class="wo-field-hint" id="otel-sampling-help">1 captures every new trace; 0 captures none. Incoming parent sampling is respected. Test traces always export.</p>
+        </div>
+        <label class="observability-check" for="otel-health"><input id="otel-health" name="health" type="checkbox" [(ngModel)]="state.configuration.exclude_health" />Exclude health checks</label>
+        <button type="submit" class="tm-primary tm-button-compact">Save configuration</button>
+      </fieldset>
+      <p id="otel-error" class="wo-field-error" role="alert">{{ error() }}</p>
+    </form>
+  </wo-card>
+  <wo-card>
+    <div class="wo-stack">
+      <div class="observability-summary-header">
+        <h2 class="wo-card-title">Local tracing</h2>
+        <p class="wo-muted">{{ state.revision ? 'Saved revision ' + state.revision : 'Not saved yet' }}{{ dirty ? ' · Unsaved changes' : '' }}</p>
+      </div>
+      <article class="observability-summary wo-stack">
+        <p>Save applies to API Builder requests for the selected project. Generated APIs include the same configuration when you build the project.</p>
+        <dl>
+          <div><dt>Builder service</dt><dd>{{ state.configuration.service_name }}</dd></div>
+          <div><dt>Generated service</dt><dd>{{ state.configuration.service_name }}-api</dd></div>
+          <div><dt>Trace export</dt><dd>{{ state.configuration.enabled ? 'Enabled in this configuration' : 'Disabled in this configuration' }}</dd></div>
+          <div><dt>Signals</dt><dd>Request traces and correlated application logs</dd></div>
+        </dl>
+        <p class="wo-muted">Request bodies, headers and query values are not captured. Metrics and log export are not configured here.</p>
+      </article>
+      <h2 class="wo-card-title">Start the local collector</h2>
+      <p>Run this from the API Builder folder, then enable tracing and save:</p>
+      <code class="observability-command">{{ setupCommand }}</code>
+      <p class="wo-muted">Jaeger receives traces on port 4318 and opens on port 16686. Its local trace history is cleared when the collector restarts. Generated Docker projects use their own Jaeger service through Compose.</p>
+      <div class="observability-actions">
+        <button type="button" class="tm-button-compact" [disabled]="!canTest" (click)="testTrace()" aria-describedby="otel-test-help">Send test trace</button>
+        <a href="http://127.0.0.1:16686" target="_blank" rel="noopener noreferrer">Open Jaeger</a>
+        <button type="button" class="tm-button-compact" [disabled]="busy()" (click)="load()">{{ state.loaded ? 'Reload saved' : 'Retry loading' }}</button>
+      </div>
+      <p id="otel-test-help" class="wo-field-hint">Save an enabled configuration before testing. A successful test confirms collector acceptance; use Jaeger to view the trace.</p>
+      @if (discard()) {
+        <p>Discard unsaved changes and reload?</p>
+        <div class="observability-actions">
+          <button type="button" class="tm-button-compact" (click)="load(true)" [disabled]="busy()">Discard and reload</button>
+          <button type="button" class="tm-button-compact" (click)="discard.set(false)">Keep editing</button>
+        </div>
+      }
+      <p role="status">{{ busy() ? 'Working…' : status() }}</p>
+      @if (traceId() && !dirty) {
+        <a [href]="'http://127.0.0.1:16686/trace/' + traceId()" target="_blank" rel="noopener noreferrer">View test trace <code>{{ traceId() }}</code></a>
+      }
+    </div>
+  </wo-card>
+</div>

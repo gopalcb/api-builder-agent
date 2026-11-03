@@ -1,0 +1,64 @@
+<div class="cache-layout">
+  <wo-card>
+    <form class="wo-stack" novalidate (ngSubmit)="save()">
+      <h2 class="wo-card-title">Configure caching</h2>
+      <fieldset class="cache-fields" [disabled]="busy() || !state.loaded">
+        <div class="wo-field">
+          <label class="wo-field-label" for="cache-kind">Template</label>
+          <wo-select triggerId="cache-kind" label="Caching template" [options]="options" [value]="state.policy.kind" [disabled]="busy() || !state.loaded" (valueChange)="choose($event)" />
+        </div>
+        <p class="wo-muted">{{ selected?.description }}</p>
+        <div class="wo-field">
+          <label class="wo-field-label" for="cache-path">Public GET route</label>
+          <input id="cache-path" [attr.aria-invalid]="invalidField() === 'cache-path'" name="path" [(ngModel)]="state.policy.path" maxlength="200" aria-describedby="cache-error" required />
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="cache-ttl">TTL (seconds)</label>
+          <input id="cache-ttl" [attr.aria-invalid]="invalidField() === 'cache-ttl'" name="ttl" type="number" [(ngModel)]="state.policy.ttl_seconds" min="1" max="3600" aria-describedby="cache-error" required />
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="cache-api">API type</label>
+          <wo-select triggerId="cache-api" describedBy="cache-error" [invalid]="invalidField() === 'cache-api'" label="API type" [options]="apiTypes" [value]="state.policy.api_type" [disabled]="busy() || !state.loaded" (valueChange)="state.policy.api_type = $event" />
+        </div>
+        <div class="wo-field">
+          <label class="wo-field-label" for="cache-query">Query keys (comma separated)</label>
+          <input id="cache-query" [attr.aria-invalid]="invalidField() === 'cache-query'" name="queries" [(ngModel)]="state.queries" aria-describedby="cache-query-help cache-error" />
+          <p class="wo-field-hint" id="cache-query-help">Gateway keys must include every query parameter that changes the response. Route and Redis templates include the full query and request headers automatically.</p>
+        </div>
+        <label class="cache-confirm" for="cache-public"><input id="cache-public" [attr.aria-invalid]="invalidField() === 'cache-public'" name="public" aria-describedby="cache-error" type="checkbox" [(ngModel)]="state.confirmed" />This route returns public data with no user or tenant-specific content.</label>
+        <button type="submit" class="tm-primary tm-button-compact">Save configuration</button>
+      </fieldset>
+      <p id="cache-error" class="wo-field-error" role="alert">{{ error() }}</p>
+    </form>
+  </wo-card>
+  <wo-card>
+    <div class="wo-stack">
+      <div class="cache-summary-header">
+        <h2 class="wo-card-title">{{ selected?.label || 'Caching configuration' }}</h2>
+        <p class="wo-muted cache-save-state">{{ state.revision ? 'Saved revision ' + state.revision : 'Not saved yet' }}{{ dirty && state.revision ? ' · Unsaved changes' : '' }}</p>
+      </div>
+      <article class="cache-summary">
+        <div class="cache-summary-route"><span class="cache-method">GET</span><code>{{ state.policy.path || '/route' }}</code></div>
+        <dl class="cache-summary-details">
+          <div><dt>Expiry</dt><dd>{{ state.policy.ttl_seconds }} seconds</dd></div>
+          <div><dt>API type</dt><dd>{{ state.policy.api_type.toUpperCase() }}</dd></div>
+          <div><dt>Storage</dt><dd>{{ state.policy.kind === 'gateway' ? 'API Gateway · encrypted stage cache' : state.policy.kind === 'redis' ? 'Redis · shared cache' : 'In-memory · 256 entries per worker' }}</dd></div>
+          <div><dt>Cache keys</dt><dd>{{ state.policy.kind === 'gateway' ? (state.queries.trim() || 'No query parameters selected') : 'Full query + request headers' }}</dd></div>
+        </dl>
+        <p class="cache-summary-note">{{ state.policy.kind === 'redis' ? 'Requires a Redis runtime connection. ' : '' }}Save stores the policy. Export provides code to integrate with your API; caching is not enabled automatically.</p>
+      </article>
+      <div class="cache-actions">
+        <button type="button" class="tm-button-compact" [disabled]="busy() || !state.revision || dirty" (click)="export()">Export template</button>
+        <button type="button" class="tm-button-compact" [disabled]="busy()" (click)="load()">{{ state.loaded ? 'Reload saved' : 'Retry loading' }}</button>
+      </div>
+      @if (discard()) {
+        <p>Discard unsaved changes and reload?</p>
+        <div class="cache-actions">
+          <button type="button" class="tm-button-compact" (click)="load(true)" [disabled]="busy()">Discard and reload</button>
+          <button type="button" class="tm-button-compact" (click)="discard.set(false)">Keep editing</button>
+        </div>
+      }
+      <p role="status">{{ busy() ? 'Working…' : status() }}</p>
+    </div>
+  </wo-card>
+</div>

@@ -1,0 +1,20 @@
+<section class="schema-canvas" aria-label="Entity schema">
+      @for (table of tables; track table.name) {
+        <wo-card class="schema-card">
+          <header class="schema-table-heading">
+            <h3>{{ table.name }}</h3>
+            <span>{{ table.fields.length }} attributes</span>
+          </header>
+          <ul class="schema-fields" [attr.aria-label]="table.name + ' attributes'">
+            @for (field of table.fields; track field.name) {
+              <li class="schema-field">
+                <span class="schema-key" [class.schema-key--foreign]="field.key === 'FK'" [class.schema-key--empty]="!field.key"
+                  [attr.aria-label]="field.key === 'PK' ? 'Primary key' : field.key === 'FK' ? 'Foreign key' : null">{{ field.key }}</span>
+                <span class="schema-field-name">{{ field.name }}</span>
+                <span class="schema-type">{{ field.type }}</span>
+              </li>
+            }
+          </ul>
+        </wo-card>
+      }
+</section>

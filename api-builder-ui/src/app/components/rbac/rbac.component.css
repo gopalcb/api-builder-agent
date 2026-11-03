@@ -1,0 +1,18 @@
+:host { display: block; }
+.rbac-layout { display: grid; grid-template-columns: minmax(0, 35fr) minmax(0, 65fr); gap: var(--wo-gap); align-items: start; }
+.rbac-editor, .rbac-review { min-width: 0; overflow-wrap: anywhere; }
+.rbac-fields { display: grid; gap: 12px; min-width: 0; border: 0; padding: 0; margin: 0; }
+.rbac-fields wo-text-input { display: grid; grid-template-columns: minmax(0, 1fr); }
+.rbac-fields wo-select { display: block; min-width: 0; }
+.rbac-fields h2 { margin: 4px 0 0; font-size: 12px; }
+.rbac-fields h3, .rbac-fields p { margin: 0; }
+.rbac-actions, .rbac-permissions, .rbac-route, .rbac-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.rbac-status { margin-bottom: 12px; }
+.rbac-role-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rbac-item { display: grid; gap: 8px; padding: 12px; background: #fff; border: 1px solid var(--wo-border); border-radius: 4px; min-width: 0; }
+.rbac-item input:not([type=checkbox]), .rbac-fields .wo-field input { width: 100%; min-width: 0; }
+.rbac-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.rbac-check input { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
+.rbac-route code { overflow-wrap: anywhere; white-space: normal; }
+.rbac-fields textarea { min-height: 0; resize: vertical; padding: 6px 8px; font-size: 12px; line-height: 16px; }
+@media (max-width: 767px) { .rbac-layout, .rbac-role-list { grid-template-columns: minmax(0, 1fr); } }

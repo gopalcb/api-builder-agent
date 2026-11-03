@@ -1,0 +1,62 @@
+<div class="load-layout">
+  <wo-card>
+    <form class="wo-stack load-form" (ngSubmit)="start()" novalidate>
+      <div class="load-heading"><h2 class="wo-card-title">Load testing configuration</h2><span class="wo-muted">{{ state.baseline ? (dirty ? 'Unsaved changes' : 'Saved for project') : 'Not saved yet' }}</span></div>
+      <div class="wo-field"><label class="wo-field-label" for="load-prompt">Load testing prompt</label><textarea [disabled]="!ready() || running()" id="load-prompt" name="prompt" [(ngModel)]="state.configuration.prompt" rows="4" maxlength="4000" placeholder="Test all read endpoints, or enter GET /product/list." required></textarea></div>
+      <div class="wo-field"><label class="wo-field-label" for="load-host">Target URL</label><input [disabled]="!ready() || running()" id="load-host" name="host" type="url" [(ngModel)]="state.configuration.host" placeholder="http://127.0.0.1:8080" required /></div>
+      <div class="load-fields">
+        <div class="wo-field"><label class="wo-field-label" for="load-users">Concurrent users</label><input [disabled]="!ready() || running()" id="load-users" name="users" type="number" [(ngModel)]="state.configuration.users" min="1" max="100" required /></div>
+        <div class="wo-field"><label class="wo-field-label" for="load-spawn">Spawn rate (users/sec)</label><input [disabled]="!ready() || running()" id="load-spawn" name="spawn" type="number" [(ngModel)]="state.configuration.spawnRate" min="0.1" max="100" step="0.1" required /></div>
+        <div class="wo-field"><label class="wo-field-label" for="load-duration">Duration (seconds)</label><input [disabled]="!ready() || running()" id="load-duration" name="duration" type="number" [(ngModel)]="state.configuration.duration" min="1" max="3600" required /></div>
+      </div>
+      <details><summary>Wait between tasks</summary><div class="load-fields load-wait">
+        <div class="wo-field"><label class="wo-field-label" for="load-min">Minimum (seconds)</label><input [disabled]="!ready() || running()" id="load-min" name="min" type="number" [(ngModel)]="state.configuration.waitMin" min="0" max="300" step="0.1" required /></div>
+        <div class="wo-field"><label class="wo-field-label" for="load-max">Maximum (seconds)</label><input [disabled]="!ready() || running()" id="load-max" name="max" type="number" [(ngModel)]="state.configuration.waitMax" min="0" max="300" step="0.1" required /></div>
+      </div></details>
+      <p class="wo-field-hint">Tests saved GET list endpoints against your local generated API using local mock authentication. Enter “Test all read endpoints” or exact list paths. Other operations and custom request mixes are not supported yet. Duration includes ramp-up; Docker must be running.</p>
+      <div><button type="submit" class="tm-primary tm-button-compact" [disabled]="!ready() || running()"><wo-icon name="check" />{{ running() ? 'Running load testing…' : 'Run load testing' }} @if (running()) { <span class="load-button-spinner" aria-hidden="true"></span> }</button></div>
+      @if (error()) { <p class="wo-field-error" role="alert">{{ error() }}</p><button type="button" class="tm-button-compact" (click)="load()">Reload run status</button> }
+      @if (notice()) { <p class="wo-muted" role="status">{{ running() ? notice() : 'Latest run finished. Report saved for this project.' }}</p> }
+    </form>
+  </wo-card>
+  <wo-card>
+    <section class="wo-stack" aria-label="Load testing report">
+      <div class="load-heading"><h2 class="wo-card-title">Load testing report</h2><span class="load-badge">{{ running() ? 'Running' : (run()?.status ?? report()?.status ?? 'No report yet') }}</span></div>
+      @if (loading()) { <p class="wo-muted" role="status">Loading the last load testing report…</p> }
+      @if (running()) { <p class="wo-muted" role="status">Run started {{ run()?.startedAt | date:'medium' }}. Results will appear when it finishes. You can leave this page and return.</p> }
+      @if (running() || (!report() && logs().length)) {
+        <article class="load-report-card load-live-log" aria-label="Load testing logs">
+          <h3>Live test logs</h3>
+          <div class="load-log-output" appAutoScrollLogs role="log" aria-live="polite" aria-relevant="additions" tabindex="0">
+            @for (line of logs(); track $index) { <div>{{ line }}</div> }
+            @empty { <div class="wo-muted">Waiting for API calls and runner output…</div> }
+          </div>
+        </article>
+      }
+      @if (report(); as result) {
+        <p class="wo-muted">Last run: {{ result.startedAt | date:'medium' }} · Finished: {{ result.completedAt | date:'medium' }} (local time)</p>
+        <p class="wo-muted">{{ result.configuration.host }} · {{ result.configuration.users }} users · {{ result.configuration.duration }} seconds · {{ result.codeUpdated ? 'Code generated' : 'Code reused' }}</p>
+        @if (run()?.id !== result.id) { <p class="wo-muted">Showing the previous saved report. The latest run has not produced a report.</p> }
+        @if (result.error) { <p class="wo-field-error">{{ result.error }}</p> }
+        @if (result.metrics.requests) {
+        <div class="load-metrics">
+          <article><span>Total requests</span><strong>{{ result.metrics.requests | number }}</strong><small>Measured requests</small></article>
+          <article><span>Throughput</span><strong>{{ result.metrics.rps ?? 0 | number:'1.1-2' }} <small>req/s</small></strong><small>Average request rate</small></article>
+          <article><span>95th percentile</span><strong>{{ result.metrics.p95 ?? 0 | number:'1.0-2' }} <small>ms</small></strong><small>Response time</small></article>
+          <article><span>Failure rate</span><strong>{{ (result.metrics.requests ? (result.metrics.failures ?? 0) * 100 / result.metrics.requests! : 0) | number:'1.0-2' }} <small>%</small></strong><small>{{ result.metrics.failures ?? 0 }} failed requests</small></article>
+        </div>
+        <article class="load-report-card">
+          <h3>Response time distribution</h3>
+          <p class="wo-muted">p50: {{ result.metrics.p50 ?? 0 }} ms · p90: {{ result.metrics.p90 ?? 0 }} ms · p95: {{ result.metrics.p95 ?? 0 }} ms · p99: {{ result.metrics.p99 ?? 0 }} ms</p>
+        </article>
+        <article class="load-report-card">
+          <h3>Endpoint statistics</h3>
+          <div class="load-table-wrap"><table><caption class="wo-muted">Measured GET list requests</caption><thead><tr><th scope="col">Endpoint</th><th scope="col">Requests</th><th scope="col">Failed</th><th scope="col">Avg ms</th><th scope="col">p95 ms</th><th scope="col">Req/s</th></tr></thead><tbody>
+            @for (endpoint of result.statistics; track endpoint.path) { <tr><th scope="row"><code>{{ endpoint.path }}</code></th><td>{{ endpoint.requests }}</td><td>{{ endpoint.failures }}</td><td>{{ endpoint.average }}</td><td>{{ endpoint.p95 }}</td><td>{{ endpoint.rps }}</td></tr> }
+          </tbody></table></div>
+        </article>
+        } @else { <p class="wo-muted">No measured requests are available for this run. Latency and failure rate are unavailable.</p> }
+      } @else if (!loading() && !running()) { <p class="wo-muted">No load testing record yet. Run load testing to generate a report.</p> }
+    </section>
+  </wo-card>
+</div>

@@ -1,0 +1,18 @@
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    environment:
+      LOCAL_MOCK_AUTH: "1"
+      DATABASE_PATH: /data/api.db
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+    volumes:
+      - api-data:/data
+      - ./logs:/app/logs
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
+    ports:
+      - "127.0.0.1:${JAEGER_UI_PORT:-16686}:16686"
+volumes:
+  api-data:

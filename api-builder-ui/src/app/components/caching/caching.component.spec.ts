@@ -1,0 +1,75 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { CachingComponent } from './caching.component';
+
+it('loads presets, saves a gateway draft, and preserves edits on a revision conflict', async () => {
+  TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+  const fixture = TestBed.createComponent(CachingComponent);
+  const http = TestBed.inject(HttpTestingController);
+  const component = fixture.componentInstance;
+  const presets = [{ id: 'route', label: 'Route caching', description: 'Local', ttl_seconds: 60 }, { id: 'gateway', label: 'API Gateway caching', description: 'REST only', ttl_seconds: 300 }];
+  http.expectOne('/api/caching').flush({ revision: 0, configuration: null, presets });
+  await fixture.whenStable();
+  fixture.detectChanges();
+  component.choose('gateway');
+  expect(component.state.policy.api_type).toBe('rest');
+  expect(component.state.policy.ttl_seconds).toBe(300);
+  component.state.confirmed = true;
+  const saving = component.save();
+  const request = http.expectOne('/api/caching');
+  expect(request.request.method).toBe('PUT');
+  request.flush({ revision: 1, configuration: request.request.body.configuration, presets });
+  await saving;
+  expect(component.dirty).toBe(false);
+  component.state.policy.ttl_seconds = 120;
+  const conflict = component.save();
+  http.expectOne('/api/caching').flush({ error: 'Conflict' }, { status: 409, statusText: 'Conflict' });
+  await conflict;
+  expect(component.state.policy.ttl_seconds).toBe(120);
+  expect(component.state.revision).toBe(1);
+  expect(component.error()).toContain('changed elsewhere');
+  await component.load();
+  expect(component.discard()).toBe(true);
+  http.expectNone('/api/caching');
+  http.verify();
+});
+
+it('offers retry after load failure and refuses invalid input before sending', async () => {
+  TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+  const fixture = TestBed.createComponent(CachingComponent);
+  const http = TestBed.inject(HttpTestingController);
+  http.expectOne('/api/caching').flush({}, { status: 500, statusText: 'Failed' });
+  await fixture.whenStable();
+  const component = fixture.componentInstance;
+  expect(component.state.loaded).toBe(false);
+  const retry = component.load();
+  http.expectOne('/api/caching').flush({ revision: 0, configuration: null, presets: [] });
+  await retry;
+  component.state.policy.ttl_seconds = 0;
+  await component.save();
+  expect(component.error()).toContain('TTL');
+  http.expectNone('/api/caching');
+  http.verify();
+});
+
+it('discards unsaved defaults when reloading a never-saved project', async () => {
+  TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+  const fixture = TestBed.createComponent(CachingComponent);
+  const http = TestBed.inject(HttpTestingController);
+  http.expectOne('/api/caching').flush({ revision: 0, configuration: null, presets: [] });
+  await fixture.whenStable();
+  const component = fixture.componentInstance;
+  expect(component.dirty).toBe(false);
+  component.state.policy.path = '/edited';
+  component.invalidField.set('cache-path');
+  await component.load();
+  expect(component.discard()).toBe(true);
+  const reloading = component.load(true);
+  http.expectOne('/api/caching').flush({ revision: 0, configuration: null, presets: [] });
+  await reloading;
+  expect(component.state.policy.path).toBe('/catalog');
+  expect(component.invalidField()).toBe('');
+  expect(component.dirty).toBe(false);
+  http.verify();
+});

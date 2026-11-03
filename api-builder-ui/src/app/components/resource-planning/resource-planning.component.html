@@ -1,0 +1,101 @@
+<div class="infra-layout">
+  <wo-card>
+    <form class="infra-form" novalidate (ngSubmit)="generate()">
+      <h2 class="wo-card-title">Plan serverless infrastructure</h2>
+      <div class="wo-field">
+        <label class="wo-field-label" for="infra-platform">Platform</label>
+        <wo-select triggerId="infra-platform" label="Platform" value="aws" [options]="platforms" [disabled]="busy()" />
+      </div>
+      <div class="wo-field">
+        <label class="wo-field-label" for="infra-mode">Deployment mode</label>
+        <wo-select triggerId="infra-mode" label="Deployment mode" value="serverless" [options]="modes" [disabled]="busy()" />
+      </div>
+      <div class="wo-field">
+        <label class="wo-field-label" for="infra-environment">Environment</label>
+        <wo-select triggerId="infra-environment" label="Environment" [value]="state.environment()" [options]="environments" [disabled]="busy()" (valueChange)="state.environment.set($event)" />
+      </div>
+      <div class="wo-field">
+        <label class="wo-field-label" for="infra-requirements">Requirements <span class="wo-muted">(optional)</span></label>
+        <textarea id="infra-requirements" name="requirements" rows="4" maxlength="4000" [(ngModel)]="state.requirements" [disabled]="busy()" aria-describedby="infra-help" placeholder="For example: process uploads in the background and notify users when ready."></textarea>
+        <p class="wo-field-hint" id="infra-help">The agent reviews your entities and saved caching policy, then proposes services, permissions and remaining decisions.</p>
+      </div>
+      <div class="infra-actions">
+        <button type="submit" class="tm-primary tm-button-compact" [disabled]="busy() || loading() || !!loadError()">{{ busy() ? 'Generating…' : 'Generate proposal' }}</button>
+        <button type="button" class="tm-button-compact" [disabled]="busy() || loading()" (click)="loadEntities()">{{ loadError() ? 'Retry entities' : 'Refresh entities' }}</button>
+      </div>
+      @if (loadError()) { <p class="wo-field-error" role="alert">{{ loadError() }}</p> }
+      @if (error()) { <p class="wo-field-error" role="alert">{{ error() }}</p> }
+      <p class="wo-field-hint" role="status">{{ loading() ? 'Loading project entities…' : status() || 'Draft kept for this project during this session. Nothing is deployed.' }}</p>
+      @if (!loading() && !loadError() && !entities().length) {
+        <p class="wo-muted">Add entities in Entity config to include their Lambda functions and tables. Shared services are shown below.</p>
+      }
+    </form>
+  </wo-card>
+
+  <wo-card>
+    <div class="infra-review">
+      <div class="infra-heading">
+        <h2 class="wo-card-title">AWS services & resources</h2>
+        <span class="wo-field-hint">{{ includedCount() }} proposed · {{ entities().length }} entity functions</span>
+      </div>
+      <div class="infra-heading">
+        <p class="wo-field-hint">{{ state.proposal() ? 'Agent proposal' : 'Baseline architecture' }} · {{ state.environment() }} · Not deployed</p>
+        <div class="infra-actions" aria-label="Diagram controls">
+          <button type="button" class="tm-button-compact" (click)="zoom(0.8)" aria-label="Zoom out">−</button>
+          <button type="button" class="tm-button-compact" (click)="zoom(1.25)" aria-label="Zoom in">+</button>
+          <button type="button" class="tm-button-compact" (click)="fit()">Fit view</button>
+        </div>
+      </div>
+      @if (changedSinceProposal) { <p class="wo-field-error" role="status">Proposal needs refresh. Regenerate to include current inputs, entities and saved caching.</p> }
+      <div #canvas class="infra-canvas" aria-label="AWS infrastructure diagram">
+        <vflow view="auto" [nodes]="graph().nodes" [edges]="graph().edges" [minZoom]="0.2" [maxZoom]="1.8" [connection]="connectionSettings" [entitiesSelectable]="false" (nodesChanges.size)="fit()">
+          <ng-template edge let-context>
+            <svg:g customTemplateEdge>
+              <svg:path [attr.d]="context.path()" fill="none" stroke="var(--wo-muted)" stroke-linejoin="round" [attr.stroke-dasharray]="context.data().candidate ? '6 4' : null" [attr.marker-end]="context.markerEnd()" />
+            </svg:g>
+          </ng-template>
+          <ng-template nodeHtml let-context>
+            <button type="button" class="infra-node" [class.selected]="selectedId() === context.node.id" [class.infra-node-pending]="context.data().status !== 'Included'" (click)="select(context.node.id)" [attr.aria-label]="context.data().service + ': ' + context.data().name + ' · ' + context.data().status" [attr.aria-pressed]="selectedId() === context.node.id">
+              <span class="infra-node-service">{{ context.data().service }}</span>
+              <span class="infra-node-name">{{ context.data().name }}</span>
+              <span class="infra-node-status">{{ context.data().status }}</span>
+            </button>
+            @for (position of context.data().targetPorts; track position) { <handle type="target" [position]="position" [id]="position" /> }
+            @for (position of context.data().sourcePorts; track position) { <handle type="source" [position]="position" [id]="position" /> }
+          </ng-template>
+        </vflow>
+      </div>
+<p class="wo-field-hint">Mapping pending: dashed branches illustrate optional services and deferred ingress. The agent must confirm publishers, consumers and storage access before implementation.</p>
+      <p class="wo-field-hint">Drag the canvas to pan; use + / − to zoom. Select a service here or in the list for details. Solid arrows show the main request path and dependencies; dashed arrows show illustrative optional or deferred paths, not confirmed mappings.</p>
+      <div class="infra-resource-list" aria-label="Resource selection">
+        @for (resource of graph().resources; track resource.id) {
+          <button type="button" class="infra-resource" [class.selected]="selectedId() === resource.id" [attr.aria-pressed]="selectedId() === resource.id" (click)="select(resource.id)">
+            <span>{{ resource.service }}<span class="infra-resource-name">{{ resource.name }}</span></span>
+            <span class="wo-field-hint">{{ resource.status }}</span>
+          </button>
+        }
+      </div>
+      <section class="infra-detail" aria-label="Selected resource details" aria-live="polite">
+        <div class="infra-heading"><h3>{{ selected().service }} · {{ selected().name }}</h3><span class="wo-field-hint">{{ selected().status }}</span></div>
+        <p>{{ selected().description }}</p>
+        @if (connections().length) {
+          <ul>@for (edge of connections(); track edge.source + edge.target) { <li>{{ resourceName(edge.source) }} → {{ resourceName(edge.target) }} <span class="wo-muted">({{ edge.label }})</span></li> }</ul>
+        }
+      </section>
+      @if (state.proposal(); as proposal) {
+        <section class="infra-detail" aria-label="Agent review">
+          <h3>Agent review</h3>
+          @if (changedSinceProposal) { <p class="wo-field-error">Inputs or entities have changed. Generate again to update this proposal.</p> }
+          <p>{{ proposal.summary }}</p>
+          <ul>@for (item of proposal.recommendations; track $index) { <li>{{ item }}</li> }</ul>
+          @if (proposal.requirements.length) {
+            <h3>Before implementation</h3>
+            <ul>@for (item of proposal.requirements; track $index) { <li>{{ item }}</li> }</ul>
+          }
+        </section>
+      } @else {
+        <p class="wo-field-hint">SQS, SNS and Redis are included only when the agent recommends them. ALB is a deferred alternative ingress; containerized deployment remains disabled. IAM roles, logs, alarms, region and recovery settings are resolved during review.</p>
+      }
+    </div>
+  </wo-card>
+</div>

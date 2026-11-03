@@ -1,0 +1,58 @@
+:host { display: block; }
+.routing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 35fr) minmax(0, 65fr);
+  gap: var(--wo-gap);
+  align-items: start;
+}
+.routing-form, .routing-drafts { display: grid; gap: 12px; min-width: 0; }
+.routing-form wo-text-input { display: grid; grid-template-columns: minmax(0, 1fr); }
+.routing-form wo-select { display: block; min-width: 0; }
+.routing-editor, .routing-list { min-width: 0; overflow-wrap: anywhere; }
+.routing-actions, .routing-route-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.routing-draft {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--wo-border);
+  border-radius: 4px;
+  min-width: 0;
+}
+.routing-draft p, .routing-draft h3 { margin: 0; }
+.routing-route-title h3 { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .routing-layout { grid-template-columns: minmax(0, 1fr); }
+}
+.routing-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+
+.routing-form textarea { min-height: 0; resize: none; padding: 6px 8px; font-size: 12px; line-height: 16px; }
+
+.routing-draft { align-content: start; }
+.routing-card-header { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.routing-card-header .wo-field-hint { min-width: 0; }
+.routing-route-title { flex-wrap: nowrap; gap: 6px; }
+.routing-path {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.routing-card-actions { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }
+:host .routing-card-actions button.tm-button-compact {
+  height: 24px;
+  min-height: 24px;
+  padding: 3px 6px;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+@media (max-width: 767px) {
+  .routing-group { grid-template-columns: minmax(0, 1fr); }
+  .routing-card-header { flex-wrap: wrap; }
+}

@@ -1,0 +1,78 @@
+<div class="search-layout">
+  <wo-card>
+    <form class="search-form" [formGroup]="store.form" (ngSubmit)="generate()" novalidate [attr.aria-busy]="store.busy()">
+      <div class="wo-field">
+        <span class="wo-field-label">Type</span>
+        <wo-select label="Type" [options]="types" [value]="store.type.value" [disabled]="store.busy()" (valueChange)="setType($event)" />
+        <p class="wo-field-hint">{{ selectedType.hint }}</p>
+      </div>
+      <div class="wo-field">
+        <span class="wo-field-label">Route path *</span>
+        <wo-select label="Route path" triggerId="search-path" [required]="true"
+          [options]="store.routeOptions" [value]="store.path.value" [disabled]="store.busy()"
+          [invalid]="store.path.invalid && (store.submitted() || store.path.touched)"
+          [describedBy]="store.path.invalid && (store.submitted() || store.path.touched) ? 'search-path-hint search-path-error' : 'search-path-hint'"
+          (valueChange)="store.setPath($event)" />
+        <p class="wo-field-hint" id="search-path-hint">{{ store.routeOptions.length ? 'Routes from Routing matching ' + selectedType.label + '.' : 'No matching routes. Add a ' + selectedType.label + ' route in Routing first.' }}</p>
+        @if (store.path.invalid && (store.submitted() || store.path.touched)) { <p class="wo-field-error" id="search-path-error">{{ pathError }}</p> }
+      </div>
+      <div class="wo-field">
+        <label class="wo-field-label" for="search-prompt">Prompt *</label>
+        <textarea id="search-prompt" rows="4" [formControl]="store.prompt" [placeholder]="selectedType.placeholder" required
+          [attr.aria-invalid]="store.prompt.invalid && (store.submitted() || store.prompt.touched) ? 'true' : null"
+          [attr.aria-describedby]="store.prompt.invalid && (store.submitted() || store.prompt.touched) ? 'search-prompt-hint search-prompt-error' : 'search-prompt-hint'"></textarea>
+        <p class="wo-field-hint" id="search-prompt-hint">Describe your data and desired behavior. Include an existing index or model if you have one; the agent will propose the details.</p>
+        @if (store.prompt.invalid && (store.submitted() || store.prompt.touched)) {
+          <p class="wo-field-error" id="search-prompt-error">Enter a prompt of 1–4000 characters.</p>
+        }
+      </div>
+      <div class="search-actions">
+        <button type="submit" class="tm-primary tm-button-compact" [disabled]="store.busy()">
+          @if (store.busy()) { <wo-spinner [announce]="false" /> }
+          <wo-icon name="sparkle" />{{ store.busy() ? 'Generating…' : store.editingId() === null ? 'Generate configuration' : 'Regenerate configuration' }}
+        </button>
+        @if (store.editingId() !== null) { <button type="button" class="tm-button-compact" [disabled]="store.busy()" (click)="store.reset()"><wo-icon name="close" />Cancel edit</button> }
+      </div>
+      @if (store.error()) { <p class="wo-field-error" role="alert">{{ store.error() }}</p> }
+      <p class="wo-field-hint">The agent drafts and reviews the setup. Configurations stay in this tab until reload; routes are not deployed.</p>
+      <p class="wo-field-hint search-status" role="status">{{ store.status() }}</p>
+    </form>
+  </wo-card>
+  <wo-card>
+    <div class="search-drafts">
+      @for (draft of store.drafts(); track draft.id) {
+        <article class="search-draft" [attr.aria-label]="draft.path">
+          <div class="search-actions"><span class="wo-field-hint">{{ label(draft.type) }} · {{ store.accessLabel(draft.path) }} · Draft</span></div>
+          <div class="search-actions">
+            <span class="wo-project-tag">POST</span><h3>{{ draft.path }}</h3>
+            <button type="button" class="tm-button-compact" [disabled]="store.busy()" [attr.aria-label]="'Edit ' + draft.path" (click)="store.edit(draft)"><wo-icon name="edit" />Edit</button>
+            <button type="button" class="tm-button-compact" [disabled]="store.busy()" [attr.aria-label]="'Remove ' + draft.path" (click)="store.remove(draft)"><wo-icon name="trash" />Remove</button>
+          </div>
+          <p class="wo-muted">{{ draft.configuration.summary }}</p>
+          @if (draft.configuration.requirements.length) {
+            <div><h4>Setup needed</h4><ul>@for (requirement of draft.configuration.requirements; track $index) { <li>{{ requirement }}</li> }</ul></div>
+          }
+          <details>
+            <summary>Configuration details</summary>
+            <dl>
+              <div><dt>Source</dt><dd>{{ draft.configuration.source }}</dd></div>
+              <div><dt>Fields</dt><dd>{{ draft.configuration.fields.join(', ') || 'To be confirmed' }}</dd></div>
+              @if (draft.configuration.embedding; as embedding) {
+                <div><dt>Embedding model</dt><dd>{{ embedding.model }}</dd></div>
+                <div><dt>Dimensions</dt><dd>{{ embedding.dimensions }}</dd></div>
+                <div><dt>Chunking</dt><dd>{{ embedding.chunking }}</dd></div>
+              }
+              <div><dt>Ranking</dt><dd>{{ draft.configuration.ranking === 'rrf' ? 'Reciprocal rank fusion (RRF)' : draft.configuration.ranking }}</dd></div>
+              <div><dt>Request</dt><dd>{{ draft.configuration.request }}</dd></div>
+              <div><dt>Response</dt><dd>{{ draft.configuration.response }}</dd></div>
+            </dl>
+            <ol>@for (step of draft.configuration.steps; track $index) { <li>{{ step }}</li> }</ol>
+          </details>
+        </article>
+      } @empty {
+        <p class="wo-muted">No search configurations yet. Add a search route in Routing, then select it here.</p>
+        <p class="wo-field-hint">Create separate embedding and search routes when you need both. Keyword search needs no embedding route.</p>
+      }
+    </div>
+  </wo-card>
+</div>

@@ -1,0 +1,18 @@
+:host { display: block; }
+.authentication-layout { display: grid; grid-template-columns: minmax(0, 35fr) minmax(0, 65fr); gap: var(--wo-gap); align-items: start; }
+wo-card, .authentication-form, wo-select { min-width: 0; }
+.authentication-form, .authentication-summary { display: grid; gap: 12px; }
+.authentication-form wo-text-input { display: grid; grid-template-columns: minmax(0, 1fr); }
+.authentication-form wo-select { display: block; }
+.authentication-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.authentication-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.6; background: #fff; border: 1px solid var(--wo-border); border-radius: 4px; padding: 12px; overflow-wrap: anywhere; }
+.authentication-summary h3 { font-size: 12px; font-weight: 600; }
+.authentication-summary h3, .authentication-summary p, dl, dd, .authentication-form p { margin: 0; }
+.authentication-summary dl { display: grid; gap: 12px; }
+.authentication-summary dt { font-size: 11px; color: var(--wo-muted); }
+.authentication-summary dd { font-size: 12px; margin-top: 4px; }
+.authentication-status { min-height: 16px; }
+@media (max-width: 767px) { .authentication-layout { grid-template-columns: minmax(0, 1fr); } }
+
+.provider-drafts { margin-top: 16px; }
+.provider-drafts > .wo-card-title { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }

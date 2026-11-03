@@ -1,0 +1,2 @@
+<app-local-settings [disabled]="changing() || disabled || actions.busy() || projects.loading()" />
+<wo-select #selector label="Active project" [options]="options()" [value]="value()" [disabled]="changing() || disabled || actions.busy()" (valueChange)="selector.value = value(); choose($event)" />

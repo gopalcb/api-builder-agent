@@ -1,0 +1,101 @@
+<div class="rbac-status" [class.wo-visually-hidden]="!busy()" aria-live="polite">
+  @if (busy()) { <wo-spinner [announce]="false" /> <span>{{ busy() }}…</span> }
+  @else { <span>{{ announcement() }}</span> }
+</div>
+@if (error()) { <p class="wo-field-error" role="alert">{{ error() }}</p> }
+@if (!loaded()) {
+  @if (!busy()) { <button type="button" class="tm-button-compact" (click)="load()"><wo-icon name="refresh" />Retry loading</button> }
+} @else {
+  <div class="rbac-layout">
+    <wo-card class="rbac-editor">
+      <fieldset [disabled]="!!busy()" class="rbac-fields">
+        <legend class="wo-visually-hidden">RBAC configuration</legend>
+        <h2>Identity and routes</h2>
+        <p class="wo-field-hint">AWS Cognito · Verified Permissions</p>
+        <div class="wo-field"><label class="wo-field-label" for="rbac-pool">User pool ID</label>
+          <input id="rbac-pool" [ngModel]="configuration().identity.user_pool_id" (ngModelChange)="setIdentity('user_pool_id', $event)" placeholder="us-east-1_Example" />
+        </div>
+        <div class="wo-field"><label class="wo-field-label" for="rbac-client">Client ID</label>
+          <input id="rbac-client" [ngModel]="configuration().identity.client_id" (ngModelChange)="setIdentity('client_id', $event)" placeholder="Cognito app client ID" />
+        </div>
+        <p class="wo-field-hint">Leave IDs blank to supply them during CloudFormation deployment. Use the existing pool’s account and region.</p>
+        <button type="button" class="tm-button-compact" (click)="importDrafts()" [disabled]="!routing.routes().length"><wo-icon name="import" />Import current drafts</button>
+        <p class="wo-field-hint">{{ routing.routes().length ? 'Imports Routing and the saved Cognito draft. Review any removed grants before saving.' : 'Add routes in Routing, then return here to import them.' }}</p>
+        @if (importedSource() === null && revision()) { <p class="wo-field-hint">Using the saved snapshot. Current session drafts are not linked.</p> }
+        @if (sourceChanged()) { <p class="wo-field-error">Source drafts changed. Import them again before saving or exporting.</p> }
+        <div class="wo-field"><label class="wo-field-label" for="rbac-prompt">Permission requirements</label>
+          <textarea id="rbac-prompt" [formControl]="prompt" rows="3" placeholder="Readers can view orders. Editors can also create and update them." [attr.aria-invalid]="prompt.touched && prompt.invalid" aria-describedby="rbac-prompt-hint"></textarea>
+          <p id="rbac-prompt-hint" class="wo-field-hint">Describe who can do what. Up to 4000 characters.</p>
+          @if (prompt.touched && prompt.invalid) { <p class="wo-field-error">Enter requirements using 1–4000 characters.</p> }
+        </div>
+        <button type="button" class="tm-primary tm-button-compact" (click)="generate()" [disabled]="!configuration().routes.length"><wo-icon name="sparkle" />Generate proposal</button>
+        <h2>Add a role</h2>
+        <wo-text-input inputId="rbac-role" label="Role ID" [control]="roleName" placeholder="reader" [required]="true" [submitted]="submittedRole()" error="Use a lowercase ID, up to 40 characters." />
+        <wo-text-input inputId="rbac-group" label="Cognito group" [control]="groupName" placeholder="readers" [required]="true" [submitted]="submittedRole()" error="Use 1–64 letters, digits, underscores or hyphens." />
+        <button type="button" class="tm-button-compact" (click)="addRole()" [disabled]="configuration().roles.length >= 20"><wo-icon name="plus" />Add role</button>
+      </fieldset>
+    </wo-card>
+    <wo-card class="rbac-review">
+      <fieldset [disabled]="!!busy()" class="rbac-fields">
+        <legend class="wo-visually-hidden">Review role permissions</legend>
+        <div class="rbac-actions">
+          <button type="button" class="tm-primary tm-button-compact" (click)="save()" [disabled]="!dirty()"><wo-icon name="check" />Save configuration</button>
+          <button type="button" class="tm-button-compact" (click)="download()" [disabled]="!canExport()"><wo-icon name="download" />Download AWS configuration</button>
+          <button type="button" class="tm-button-compact" (click)="requestReload()"><wo-icon name="refresh" />Reload saved</button>
+          @if (dirty()) { <span class="wo-field-hint">Unsaved changes</span> }
+        </div>
+        @if (reloadRequested()) {
+          <div class="rbac-item"><p>Reloading will discard your unsaved edits.</p><div class="rbac-actions">
+            <button type="button" class="tm-button-compact" (click)="load()"><wo-icon name="refresh" />Discard edits and reload</button>
+            <button type="button" class="tm-button-compact" (click)="reloadRequested.set(false)"><wo-icon name="edit" />Keep editing</button>
+          </div></div>
+        }
+        <p class="wo-field-hint">Saving and exporting do not enforce access. Deploy the policies and connect your API authorizer separately.</p>
+        @if (configuration().notes) { <p class="wo-muted">{{ configuration().notes }}</p> }
+        @for (question of configuration().questions; track $index) {
+          <div class="rbac-item"><p>{{ question }}</p><button type="button" class="tm-button-compact" (click)="resolveQuestion($index)"><wo-icon name="check" />Mark resolved after review</button></div>
+        }
+        <h2>Roles</h2>
+        <div class="rbac-role-list">
+          @for (role of configuration().roles; track role.id; let index = $index) {
+            <article class="rbac-item">
+              <div class="rbac-actions"><h3>{{ role.id }}</h3><button type="button" class="tm-button-compact" [attr.aria-label]="'Remove role ' + role.id" (click)="removeRole(role.id)"><wo-icon name="trash" />Remove</button></div>
+              <div class="wo-field"><label class="wo-field-label" [for]="'group-' + role.id">Cognito group</label>
+              <input [id]="'group-' + role.id" [ngModel]="role.group" (ngModelChange)="updateRole(index, 'group', $event)" maxlength="64" /></div>
+              <div class="wo-field"><label class="wo-field-label" [for]="'description-' + role.id">Description</label>
+              <input [id]="'description-' + role.id" [ngModel]="role.description" (ngModelChange)="updateRole(index, 'description', $event)" maxlength="500" /></div>
+              <label class="rbac-check"><input type="checkbox" [checked]="role.create_group" (change)="updateRole(index, 'create_group', $any($event.target).checked)" />Create a new group at deployment</label>
+              <p class="wo-field-hint">{{ role.create_group ? 'Only select this for a group that does not exist.' : 'Use an existing group. Membership is managed in Cognito.' }}</p>
+            </article>
+          } @empty { <p class="wo-muted">No roles yet. Add a role or generate a proposal.</p> }
+        </div>
+        <h2>Route permissions</h2>
+        <p class="wo-field-hint">Protected routes deny access unless a selected role grants it. No implicit administrator permissions.</p>
+        @for (route of configuration().routes; track $index; let index = $index) {
+          <article class="rbac-item">
+            <div class="rbac-route"><span class="wo-project-tag">{{ route.method || 'Method required' }}</span><code>{{ route.path }}</code><span class="wo-field-hint">{{ route.access === 'public' ? 'Public' : 'Authenticated' }}</span></div>
+            <wo-select [label]="'HTTP method for ' + route.path" [options]="methods" [value]="route.method" [disabled]="!!busy()" (valueChange)="setMethod(index, $event)" />
+            @if (route.access === 'public') { <p class="wo-field-hint">Public access is defined in Routing; role restrictions do not apply.</p> }
+            @else {
+              <div class="rbac-permissions">
+                @if (!hasGrants(route.key)) { <span class="wo-field-hint">No grants · Denied</span> }
+                @for (role of configuration().roles; track role.id) {
+                  <label class="rbac-check"><input type="checkbox" [checked]="granted(role.id, route.key)" [disabled]="!route.method" (change)="toggleGrant(role.id, route.key, $any($event.target).checked)" />{{ role.id }}</label>
+                } @empty { <span class="wo-field-hint">No roles granted · Denied</span> }
+              </div>
+            }
+          </article>
+        } @empty { <p class="wo-muted">No route snapshot. Import the current drafts from Routing.</p> }
+        @if (configuration().routes.length) {
+          <h2>Preview access</h2>
+          <div class="rbac-permissions">
+            @for (role of configuration().roles; track role.id) { <label class="rbac-check"><input type="checkbox" [checked]="selectedRoles().includes(role.id)" (change)="selectPreviewRole(role.id, $any($event.target).checked)" />{{ role.id }}</label> }
+          </div>
+          <wo-select label="Preview route" [options]="routeOptions()" [value]="previewRoute()" [disabled]="!!busy()" (valueChange)="setPreviewRoute($event)" />
+          <button type="button" class="tm-button-compact" [disabled]="!previewRoute()" (click)="preview()"><wo-icon name="shield" />Preview access</button>
+          <p class="wo-field-hint" role="status">{{ decision() || 'Select roles and a route. With no roles, protected routes are denied.' }}</p>
+        }
+      </fieldset>
+    </wo-card>
+  </div>
+}

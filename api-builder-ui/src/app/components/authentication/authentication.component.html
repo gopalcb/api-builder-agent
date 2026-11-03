@@ -1,0 +1,49 @@
+<wo-card class="localhost-authentication" heading="Localhost authentication">
+  <p>Container APIs use local mock bearer authentication. Run the downloaded project with Docker Compose, then POST to <code>http://127.0.0.1:8080/auth/token</code> for a one-hour test token.</p>
+  <p>Send the token in the Authorization header as <code>Bearer &lt;token&gt;</code>. Public endpoints need no token. Tokens reset on container restart. This configuration is for localhost testing only.</p>
+</wo-card>
+<section class="provider-drafts" aria-labelledby="provider-drafts-title">
+<h2 id="provider-drafts-title" class="wo-card-title">Future provider drafts (not used by localhost)</h2>
+<div class="authentication-layout">
+  <wo-card>
+    <form class="authentication-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="wo-field">
+        <span class="wo-field-label">Provider</span>
+        <wo-select label="Provider" [options]="providers" [value]="provider().value" (valueChange)="selectProvider($event)" />
+        <p class="wo-field-hint">{{ provider().description }}</p>
+      </div>
+      @for (field of fields(); track provider().value + field.key) {
+        <wo-text-input [inputId]="'auth-' + field.key" [label]="field.label" [control]="form.controls[field.key]"
+          [placeholder]="field.placeholder" [hint]="field.hint" [required]="field.required" [submitted]="submitted()"
+          [type]="field.kind && field.kind !== 'scopes' ? 'url' : 'text'" [error]="error(field)" />
+      }
+      <div class="authentication-actions">
+        <button type="submit" class="tm-primary tm-button-compact"><wo-icon name="check" />Save draft</button>
+        @if (form.dirty) { <span class="wo-field-hint">Unsaved changes</span> }
+      </div>
+      <p class="wo-field-hint">Drafts stay in this tab until reload. Saving does not enable authentication.</p>
+      <p class="authentication-status wo-field-hint" role="status">{{ announcement() }}</p>
+    </form>
+  </wo-card>
+  <wo-card heading="Configuration">
+    <div class="authentication-summary">
+      <div>
+        <h3>Authorization Code + PKCE</h3>
+        <p class="wo-muted">Public client · S256 · No client secret</p>
+      </div>
+      @if (saved(); as configuration) {
+        <p class="wo-field-hint">Saved {{ provider().label }} draft · Not connected</p>
+        <dl>
+          @for (field of fields(); track field.key) {
+            <div><dt>{{ field.label }}</dt><dd>{{ configuration[field.key] || 'Not set' }}</dd></div>
+          }
+        </dl>
+      } @else {
+        <p class="wo-muted">No saved {{ provider().label }} draft. Enter your application details and save a draft.</p>
+      }
+      <p class="wo-field-hint">Use the callback registered for your application. Provider connection and API enforcement are not configured by this draft.</p>
+    </div>
+  </wo-card>
+</div>
+
+</section>

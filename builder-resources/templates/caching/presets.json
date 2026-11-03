@@ -1,0 +1,5 @@
+[
+  {"id":"route","label":"Route caching","description":"Bounded in-process caching for public GET responses. Each worker has its own cache.","ttl_seconds":60},
+  {"id":"redis","label":"Redis caching","description":"Shared cache-aside storage with per-key expiry. Requires a Redis connection at runtime.","ttl_seconds":300},
+  {"id":"gateway","label":"API Gateway caching","description":"Encrypted stage cache for a REST API. Not supported by HTTP APIs; AWS charges apply when deployed.","ttl_seconds":300}
+]

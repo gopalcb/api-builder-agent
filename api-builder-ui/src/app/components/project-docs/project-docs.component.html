@@ -1,0 +1,145 @@
+<section class="tm-documents builder-docs">
+  <div class="tm-documents-header">
+    <div class="docs-title-search">
+    <h2 class="tm-heading">Documents</h2>
+    <div class="tm-document-search">
+      <input
+        #search
+        type="search"
+        aria-label="Search documents"
+        placeholder="Search documents…"
+        [value]="query()"
+        (input)="query.set($any($event.target).value)"
+      />
+      @if (query()) {
+        <button
+          class="docs-search-clear"
+          type="button"
+          aria-label="Clear document search"
+          (click)="query.set(''); search.focus()"
+        >
+          ×
+        </button>
+      } @else {
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          aria-hidden="true"
+        >
+          <circle cx="8.5" cy="8.5" r="5.5" />
+          <path d="m12.5 12.5 4 4" />
+        </svg>
+      }
+    </div>
+    </div>
+    <app-project-build-actions />
+    <div class="tm-document-actions">
+      <app-project-selector [disabled]="saving()" [onSelect]="selectProject" />
+    </div>
+  </div>
+  
+  <div class="tm-documents-layout">
+    <section
+      class="tm-document-list tm-column wo-kanban-column"
+      aria-label="Documents"
+      [attr.aria-busy]="loading()"
+    >
+      @if (loading()) {
+        <wo-spinner label="Loading documents" />
+      }
+      @if (listError()) {
+        <p role="alert">{{ listError() }}</p>
+        <button type="button" (click)="loadList()">Retry</button>
+      }
+      @for (document of filteredDocuments(); track document.id) {
+        <div class="tm-document-row tm-document-row--plain">
+          <button
+            type="button"
+            class="tm-document-item wo-document-link"
+            [disabled]="saving()"
+            [attr.aria-pressed]="selected()?.id === document.id"
+            (click)="selectDocument(document)"
+          >
+            <strong>{{ descriptions[document.id]?.title || document.filename }}</strong>
+            <span>{{ descriptions[document.id]?.description || document.filename }}</span>
+          </button>
+        </div>
+      } @empty {
+        @if (!loading() && !listError()) {
+          <p class="tm-no-results">
+            {{
+              query()
+                ? "No matching documents."
+                : "No generated documents yet."
+            }}
+          </p>
+        }
+      }
+    </section>
+    <article
+      class="tm-column wo-kanban-column tm-document-reader wo-document-reader"
+      aria-label="Document content"
+      [attr.aria-busy]="reading()"
+    >
+      @if (selected(); as document) {
+        @if (reading()) {
+          <wo-spinner label="Opening document" />
+        } @else if (readError()) {
+          <p role="alert">{{ readError() }}</p>
+          <button type="button" (click)="selectDocument(document)">
+            Retry opening
+          </button>
+        } @else {
+          <wo-markdown-editor
+            [label]="document.filename"
+            [value]="content()"
+            (valueChange)="content.set($event); notice.set('')"
+            [disabled]="saving()"
+          />
+          <div class="docs-reader-actions">
+            <div class="tm-dialog-actions">
+              <button
+                type="button"
+                class="tm-primary tm-button-compact"
+                [disabled]="saving() || !dirty()"
+                (click)="saveDocument()"
+              >
+                <wo-icon name="check" />{{ saving() ? "Saving…" : "Save" }}
+              </button>
+            </div>
+            @if (saveError()) {
+              <p class="tm-error" role="alert">{{ saveError() }}</p>
+            }
+            @if (notice()) {
+              <p role="status">{{ notice() }}</p>
+            }
+          </div>
+        }
+      } @else {
+        <div class="tm-document-empty">
+          <h2>Your documents, in one place</h2>
+          <p>Select a document to start reading.</p>
+        </div>
+      }
+    </article>
+  </div>
+</section>
+<dialog
+  #discardDialog
+  class="tm-dialog"
+  aria-labelledby="docs-discard-title"
+  (cancel)="$event.preventDefault(); finishDiscard(false)"
+>
+  <h2 id="docs-discard-title">Unsaved Markdown</h2>
+  <p>Discard your edits and continue?</p>
+  <div class="tm-dialog-actions">
+    <button type="button" (click)="finishDiscard(false)">Keep editing</button
+    ><button class="tm-primary" type="button" (click)="finishDiscard(true)">
+      Discard edits
+    </button>
+  </div>
+</dialog>

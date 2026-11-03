@@ -1,0 +1,45 @@
+<button #trigger type="button" class="tm-button-compact settings-trigger" [disabled]="disabled || busy()" aria-haspopup="dialog" (click)="open()"><wo-icon name="settings" />Settings</button>
+<dialog #dialog class="tm-dialog settings-dialog" aria-labelledby="local-settings-title" (cancel)="$event.preventDefault(); requestClose()">
+  <h2 id="local-settings-title">Settings</h2>
+  <p class="wo-muted">Choose the API Builder backend for this browser.</p>
+  <form [formGroup]="form" (ngSubmit)="test(true)" novalidate>
+    <fieldset [disabled]="busy()">
+      <label class="settings-toggle"><input type="checkbox" formControlName="direct" [attr.disabled]="connection.canConnectDirectly ? null : ''" />Connect directly to a local backend</label>
+      @if (!connection.canConnectDirectly) { <p class="wo-muted">Open API Builder on localhost to use a direct connection.</p> }
+      <div class="settings-mode-content">
+      <div [class.settings-mode-hidden]="!form.controls.direct.value" [attr.inert]="!form.controls.direct.value ? '' : null" [attr.aria-hidden]="!form.controls.direct.value">
+        <wo-text-input inputId="local-backend-port" label="Local backend port" type="tel" [control]="form.controls.port" [required]="true" [submitted]="submitted()" error="Enter a whole port number from 1 to 65535." hint="Start the backend on this port before connecting. This setting does not restart it." />
+      </div>
+      <div [class.settings-mode-hidden]="form.controls.direct.value" [attr.inert]="form.controls.direct.value ? '' : null" [attr.aria-hidden]="form.controls.direct.value">
+        <p class="wo-muted">Use this site's configured backend connection. Local development defaults to port 5000.</p>
+      </div>
+      </div>
+      <dl class="settings-addresses">
+        <div><dt>Site address</dt><dd>{{ connection.browser.origin }}</dd></div>
+        <div><dt>Backend address</dt><dd>{{ address() }}</dd></div>
+      </dl>
+      <div class="settings-check-actions">
+        <button type="button" (click)="runCurrentApi()">{{ runningApi() ? 'Running current API…' : 'Run current API' }}</button>
+        <button type="button" (click)="reset()">Reset defaults</button>
+        <button type="button" (click)="test()">Test connection</button>
+      </div>
+    </fieldset>
+    <div class="settings-feedback" aria-live="polite">
+      @if (busy()) { <p role="status"><wo-spinner [announce]="false" />{{ saving() ? 'Checking connection and saving…' : 'Checking connection…' }}</p> }
+      @if (notice()) { <p role="status">{{ notice() }}</p> }
+      @if (error()) { <p class="wo-field-error" role="alert">{{ error() }}</p> }
+    </div>
+    <p class="wo-muted">Save and reload opens Projects. Unsaved page drafts will be lost. A different backend may have a different project catalog.</p>
+    @if (discard()) {
+      <div class="settings-discard" role="group" aria-label="Unsaved settings">
+        <p>Discard your unsaved settings?</p>
+        <button type="button" (click)="discard.set(false)">Keep editing</button>
+        <button type="button" (click)="close()">Discard changes</button>
+      </div>
+    }
+    <div class="tm-dialog-actions">
+      <button type="button" [disabled]="busy()" (click)="requestClose()">Cancel</button>
+      <button type="submit" class="tm-primary" [disabled]="busy()">Save and reload</button>
+    </div>
+  </form>
+</dialog>

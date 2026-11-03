@@ -1,0 +1,65 @@
+<div class="routing-layout">
+  <wo-card class="routing-editor">
+    <form class="routing-form" [formGroup]="form" (ngSubmit)="saveRoute()" novalidate>
+      <div class="wo-field">
+        <span class="wo-field-label">Route type</span>
+        <wo-select [disabled]="store.loading() || store.saving()" label="Route type" [options]="typeOptions" [value]="routeType.value" (valueChange)="setType($event)" />
+      </div>
+      <div class="wo-field"><span class="wo-field-label">Entity</span>
+        <wo-select [disabled]="store.loading() || store.saving()" label="Entity" [required]="true" [invalid]="submitted() && entity.invalid" [describedBy]="submitted() && entity.invalid ? 'endpoint-entity-error' : null" [options]="entityOptions()" [value]="entity.value" (valueChange)="entity.setValue($event)" />
+      </div>
+      @if (submitted() && entity.invalid) { <p id="endpoint-entity-error" class="wo-field-error" role="alert">Choose an entity for this endpoint.</p> }
+      <div class="wo-field">
+        <span class="wo-field-label">Operation</span>
+        <wo-select [disabled]="store.loading() || store.saving()" label="Operation" [options]="operationOptions" [value]="operation.value" (valueChange)="operation.setValue($any($event))" />
+      </div>
+      <wo-text-input inputId="route-path" label="Route path" placeholder="/customer/list" [control]="path" [required]="true" [submitted]="submitted()" [error]="pathError" />
+      <div class="wo-field">
+        <label class="wo-field-label" for="route-prompt">Prompt</label>
+        <textarea id="route-prompt" [formControl]="prompt" rows="3" placeholder="Describe what this route should do."
+          [attr.aria-invalid]="prompt.invalid && (prompt.touched || submitted()) ? 'true' : null"
+          [attr.aria-describedby]="prompt.invalid && (prompt.touched || submitted()) ? 'route-prompt-error' : null"></textarea>
+        @if (prompt.invalid && (prompt.touched || submitted())) {
+          <p class="wo-field-error" id="route-prompt-error">Enter no more than 4000 characters.</p>
+        }
+      </div>
+      <div class="routing-actions">
+        <button type="submit" class="tm-primary tm-button-compact" [disabled]="store.loading() || store.saving()"><wo-icon [name]="editingId() === null ? 'plus' : 'check'" />{{ editingId() === null ? 'Add route' : 'Update route' }}</button>
+        @if (editingId() !== null) {
+          <button type="button" class="tm-button-compact" [disabled]="store.saving()" (click)="cancelEdit()"><wo-icon name="close" />Cancel</button>
+        }
+      </div>
+    </form>
+  </wo-card>
+  <wo-card class="routing-list">
+    <div class="routing-drafts">
+      @if (store.loading()) { <p role="status">Loading endpoints…</p> }
+      @if (store.saving()) { <p role="status">Saving endpoints…</p> }
+      @if (store.catalogError()) { <button type="button" (click)="store.loadEntities()">Reload endpoints</button> }
+      @if (store.catalogError()) { <p class="wo-field-error" role="alert">{{ store.catalogError() }}</p> }
+      @for (group of groups(); track group.entity) {
+        <section class="routing-group" [attr.aria-label]="group.entity || 'Custom routes'">
+          @for (route of group.routes; track route.id) {
+            <article class="routing-draft" [attr.aria-label]="route.path">
+              <div class="routing-card-header">
+                <p class="wo-field-hint">{{ typeLabel(route.type) }}@if (isSearchType(route.type)) { · {{ route.access === 'public' ? 'Public' : 'Authenticated' }} }</p>
+                <div class="routing-actions routing-card-actions">
+                  <button class="tm-button-compact" type="button" [attr.aria-label]="'Edit ' + route.path" [disabled]="store.loading() || store.saving()" (click)="editRoute(route)"><wo-icon name="edit" />Edit</button>
+                  <button class="tm-button-compact" type="button" [attr.aria-label]="'Remove ' + route.path" [disabled]="store.loading() || store.saving()" (click)="removeRoute(route)"><wo-icon name="trash" />Remove</button>
+                </div>
+              </div>
+              <div class="routing-route-title">
+                @if (route.method) { <span class="wo-project-tag">{{ route.method }}</span> }
+                <h3 class="routing-path">{{ route.path }}</h3>
+              </div>
+              @if (route.prompt) { <p class="wo-muted">{{ route.prompt }}</p> }
+            </article>
+          }
+        </section>
+      } @empty {
+        <p class="wo-muted">No routes yet. Create an entity for default routes or add a route path.</p>
+      }
+    </div>
+  </wo-card>
+</div>
+<p class="wo-visually-hidden" role="status">{{ announcement() }}</p>

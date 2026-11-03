@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.angular/
+.env*
+.codex/sessions/
+.codex/memories/
+.venv/
+.codex/
+.agent/
+.agents/
+__pycache__/
+.pytest_cache/
+instance/
+
+# Generated demos, test runs, and local media are not source artifacts.
+generated-artifacts/
+docs/
+*.egg-info/
+
+logs/*
+!logs/.gitkeep

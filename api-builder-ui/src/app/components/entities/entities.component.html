@@ -1,0 +1,119 @@
+<div class="entity-layout">
+  <wo-card class="entity-editor">
+    <div class="entity-sections">
+      <form class="entity-create" [formGroup]="createForm" (ngSubmit)="createEntity()" novalidate>
+        <wo-text-input
+          inputId="entity-name"
+          label="Entity name"
+          placeholder="e.g. Customer"
+          [control]="name"
+          [required]="true"
+          [submitted]="submitted()"
+          [error]="name.hasError('duplicate') ? 'An entity with this name already exists.' : ''"
+        />
+        <button class="tm-primary tm-button-compact" type="submit" [disabled]="loading() || saving()"><wo-icon [name]="editingId() === null ? 'plus' : 'check'" />{{ saving() ? 'Saving…' : editingId() === null ? 'New entity' : 'Save changes' }}</button>
+      </form>
+      @if (editingId() !== null) { <button type="button" class="tm-button-compact" [disabled]="saving()" (click)="cancelEdit()">Cancel edit</button> }
+      @if (loadError()) { <p class="tm-error" role="alert">Could not load entities. <button type="button" (click)="loadEntities()">Retry</button></p> }
+      @if (loading()) { <p role="status">Loading entities…</p> }
+      @if (saving()) { <p role="status">Saving entity…</p> }
+      @if (saveError()) { <p class="tm-error" role="alert">{{ saveError() }}</p> }
+      @for (entity of selectedEntities(); track entity.id) {
+        <section class="wo-field entity-definition" [attr.aria-labelledby]="'definition-heading-' + entity.id">
+          <div class="entity-heading">
+            <h3 class="wo-card-title" [id]="'definition-heading-' + entity.id">{{ entity.name }}</h3>
+
+          </div>
+          <label class="wo-field-label" [for]="'entity-definition-' + entity.id">Entity definition prompt</label>
+          <textarea
+            [id]="'entity-definition-' + entity.id"
+            [formControl]="entity.definition"
+            [readOnly]="entity.configurationLoading || entity.configurationError || generating() === entity.id"
+            rows="3"
+            placeholder="Describe the entity, or ask to update its current attributes and relationships."
+          ></textarea>
+          @if (entity.configurationLoading) { <p role="status">Loading saved configuration…</p> }
+          @if (entity.configurationError) { <p class="tm-error" role="alert">Could not load configuration. <button type="button" (click)="loadDefinition(entity)">Retry</button></p> }
+          <div class="entity-definition-actions">
+            <button type="button" class="tm-primary tm-button-compact" [disabled]="generating() !== null || attributeSaving() || editingAttribute() !== null || entity.configurationLoading || entity.configurationError || !entity.definition.value.trim()" (click)="generate(entity)"><wo-icon name="sparkle" />{{ generating() === entity.id ? 'Generating…' : 'Generate configuration' }}</button>
+          </div>
+          @if (entity.runId) {
+            <hr class="entity-divider" />
+            <section class="entity-agent-logs" [attr.aria-label]="entity.name + ' agent logs'">
+              <h4>Agent logs</h4>
+              <div class="entity-log-output" appAutoScrollLogs role="log" aria-live="polite" aria-relevant="additions">
+                @for (entry of entity.logs ?? []; track $index) {
+                  <div class="entity-log-line" [class.entity-log-error]="entry.level === 'ERROR'"><time>{{ entry.timestamp | date:'HH:mm:ss' }}</time> {{ entry.level }} {{ entry.function ?? entry.agent ?? 'agent' }} · {{ entry.event }}@if (entry.step) { · {{ entry.step }} }@if (entry.duration_ms !== undefined) { · {{ entry.duration_ms }} ms }@if (entry.error_type) { · {{ entry.error_type }} }</div>
+                } @empty { <p>{{ generating() === entity.id ? 'Waiting for agent execution logs…' : 'No execution logs returned.' }}</p> }
+              </div>
+              @if (entity.logsError) { <p class="tm-error" role="status">{{ entity.logsError }}</p> }
+            </section>
+          }
+          @if (entity.generationError) { <p class="tm-error" role="alert">{{ entity.generationError }}</p> }
+        </section>
+        <hr class="entity-divider" />
+      } @empty {
+        @if (!loading() && !loadError()) {
+          <p class="wo-muted">No entities yet. Enter a name to create your first entity.</p>
+        }
+      }
+    </div>
+  </wo-card>
+  <wo-card class="entity-schema" aria-label="Entity schema cards">
+    @if (entities().length) {
+    @if (attributeError() && !editingAttribute()) { <p class="tm-error" role="alert">{{ attributeError() }}</p> }
+    <section class="entity-cards" aria-label="Entity attributes">
+    @for (entity of entities(); track entity.id) {
+      <wo-card class="entity-properties">
+        <div class="entity-heading"><h3 class="entity-card-title"><button type="button" class="entity-title-select" [attr.aria-pressed]="selectedEntities()[0]?.id === entity.id" [disabled]="saving()" (click)="selectEntity(entity)">{{ entity.name }}</button></h3>
+            <div class="entity-actions">
+              <button type="button" class="tm-button-compact" [disabled]="saving() || generating() !== null || attributeSaving() || editingAttribute() !== null" [attr.aria-label]="'Edit ' + entity.name" (click)="editEntity(entity)"><wo-icon name="edit" />Edit</button>
+              <button type="button" class="tm-button-compact" [disabled]="saving() || generating() !== null || attributeSaving() || editingAttribute() !== null" [attr.aria-label]="'Delete ' + entity.name" (click)="confirmDelete(entity)"><wo-icon name="trash" />Delete</button>
+            </div>
+        </div>
+        <hr class="entity-divider" />
+        @for (attribute of entity.attributes ?? []; track $index; let index = $index) {
+            <div class="entity-attribute-row">
+              <p class="entity-attribute"><strong>{{ attribute.name }}</strong> · {{ attribute.data_type }} · {{ attribute.nullable ? 'Optional' : 'Required' }}</p>
+              <div class="entity-actions attribute-actions">
+                <button type="button" class="entity-action-link" [disabled]="attributeSaving() || generating() !== null || editingAttribute() !== null" [attr.aria-label]="'Edit ' + entity.name + ' attribute ' + attribute.name" (click)="editAttribute(entity, index)">Edit</button>
+                <button type="button" class="entity-action-link" [disabled]="attributeSaving() || generating() !== null || editingAttribute() !== null" [attr.aria-label]="'Delete ' + entity.name + ' attribute ' + attribute.name" (click)="deleteAttribute(entity, index)">Delete</button>
+              </div>
+            </div>
+          <hr class="entity-divider" />
+        } @empty { <p class="wo-muted">No attributes yet. Describe the entity and generate configuration.</p> }
+      </wo-card>
+    }
+    </section>
+    }
+  </wo-card>
+</div>
+<p class="wo-visually-hidden" role="status">{{ announcement() }}</p>
+
+<dialog #deleteDialog class="tm-dialog" aria-labelledby="delete-entity-title" (cancel)="saving() && $event.preventDefault()">
+  <h2 id="delete-entity-title">Delete {{ deleting()?.name }}?</h2>
+  <p>This removes the entity and its endpoint drafts.</p>
+  @if (saveError()) { <p class="tm-error" role="alert">{{ saveError() }}</p> }
+  <div class="tm-dialog-actions">
+    <button type="button" [disabled]="saving()" (click)="deleteDialog.close()">Cancel</button>
+    <button type="button" class="tm-primary" [disabled]="saving()" (click)="deleteEntity()"><wo-icon name="trash" />{{ saving() ? 'Deleting…' : 'Delete' }}</button>
+  </div>
+</dialog>
+
+<dialog #attributeDialog class="tm-dialog attribute-dialog" aria-labelledby="edit-attribute-title" (cancel)="attributeSaving() ? $event.preventDefault() : cancelAttributeEdit()">
+  <h2 id="edit-attribute-title">Edit attribute</h2>
+  @if (attributeEntity; as entity) {
+    <form class="attribute-edit" [formGroup]="attributeForm" (ngSubmit)="saveAttribute(entity)">
+      <label for="edit-attribute-name">Name</label>
+      <input id="edit-attribute-name" formControlName="name" autofocus />
+      <label for="edit-attribute-type">Type</label>
+      <select id="edit-attribute-type" formControlName="data_type">
+        @for (type of attributeTypes; track type) { <option [value]="type">{{ type }}</option> }
+      </select>
+      <label class="attribute-required"><input type="checkbox" formControlName="required" />Required</label>
+      @if (attributeForm.controls.name.touched && attributeForm.controls.name.invalid) { <p class="tm-error">Use a letter followed by letters, digits or underscores.</p> }
+      @if (attributeError()) { <p class="tm-error" role="alert">{{ attributeError() }}</p> }
+      <div class="tm-dialog-actions"><button type="button" [disabled]="attributeSaving()" (click)="cancelAttributeEdit()">Cancel</button><button type="submit" class="tm-primary" [disabled]="attributeSaving()">{{ attributeSaving() ? 'Saving…' : 'Save' }}</button></div>
+    </form>
+  }
+</dialog>

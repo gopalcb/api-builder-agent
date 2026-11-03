@@ -1,0 +1,18 @@
+:host { display: block; }
+.observability-layout { display: grid; grid-template-columns: minmax(0, 35fr) minmax(0, 65fr); gap: var(--wo-gap); align-items: start; }
+.observability-layout wo-card { min-width: 0; overflow-wrap: anywhere; }
+.observability-fields { display: grid; gap: 12px; min-width: 0; border: 0; padding: 0; margin: 0; }
+.observability-fields input:not([type=checkbox]) { width: 100%; min-width: 0; }
+.observability-check { display: flex; align-items: start; gap: 8px; font-size: 11px; line-height: 16px; }
+.observability-check input { flex: 0 0 16px; width: 16px; }
+.observability-summary-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.observability-summary-header h2, .observability-summary-header p { margin: 0; }
+.observability-summary-header p { margin-left: auto; text-align: right; font-size: 11px; }
+.observability-summary { background: #fff; border: 1px solid var(--wo-border); border-radius: 4px; padding: 12px; }
+.observability-summary dl { display: grid; gap: 12px; margin: 0; }
+.observability-summary dl > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; }
+.observability-summary dt { color: var(--wo-muted); }
+.observability-summary dd { margin: 0; }
+.observability-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.observability-command { display: block; padding: 12px; background: #fff; border: 1px solid var(--wo-border); border-radius: 4px; overflow-wrap: anywhere; }
+@media (max-width: 767px) { .observability-layout { grid-template-columns: minmax(0, 1fr); } }

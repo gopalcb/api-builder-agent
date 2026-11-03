@@ -1,0 +1,8 @@
+<wo-card><section class="wo-stack" aria-label="Project activities">
+  <h2 class="wo-card-title">Activities</h2>
+  <p class="wo-muted">History in this browser · Most recent first</p>
+  @if (activities.storageError()) { <p role="alert">Browser storage is unavailable. New activities are available for this session only.</p> }
+  @for (entry of entries(); track entry.id) {
+    <article class="activity-row"><time [attr.datetime]="entry.time">{{ entry.time | date:'MMM d, HH:mm:ss' }}</time><span>{{ entry.action }}</span><span class="activity-status" [class.wo-field-error]="entry.status === 'failure'">{{ entry.status }}</span></article>
+  } @empty { <p class="wo-muted">No activities recorded for this project.</p> }
+</section></wo-card>

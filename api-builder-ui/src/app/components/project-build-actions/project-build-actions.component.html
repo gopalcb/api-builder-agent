@@ -1,0 +1,42 @@
+@if (projects.activeProject(); as project) {
+    <div class="project-build-actions" aria-label="Project test and build">
+      <a class="tm-button-compact project-swagger-link" [href]="connection.swaggerUrl(project.id)" target="_blank" rel="noopener noreferrer"><wo-icon name="document" />Swagger</a>
+      <button type="button" class="tm-button-compact" [disabled]="actions.busy()" (click)="run('test')"><wo-icon name="check" />{{ actions.busy() && actions.operation() === 'test' ? 'Testing…' : 'Test' }}</button>
+      <button type="button" class="tm-primary tm-button-compact" [disabled]="actions.busy()" (click)="run('build')"><wo-icon name="build" />{{ actions.busy() && actions.operation() === 'build' ? 'Building…' : 'Build' }}</button>
+      @if (actions.results()[project.id]) { <button type="button" class="tm-button-compact" (click)="openLogs()">Logs</button> }
+    </div>
+  }
+
+<dialog #logsDialog class="tm-dialog tm-item-drawer build-log-drawer" aria-labelledby="build-log-title">
+  <div class="tm-drawer-header">
+    <h2 id="build-log-title">{{ shownProjectName }} · Execution logs</h2>
+    <button type="button" class="tm-button-compact build-log-close" autofocus aria-label="Close build logs" (click)="logsDialog.close()">×</button>
+  </div>
+  @if (actions.results()[shownProjectId ?? 0]; as result) {
+    <p [attr.role]="result.status === 'failure' ? 'alert' : 'status'">{{ result.label }} · {{ result.status }} — {{ result.message }}</p>
+    @if (actions.logProjectId() === shownProjectId && result.label === 'Project build') {
+      <section class="build-workflow" aria-label="Build workflow">
+        <div class="build-workflow-title">Agent workflow</div>
+        <ol class="build-workflow-list">
+          @for (step of workflowSteps(); track step.label; let first = $first) {
+            <li class="build-workflow-step" [class.build-workflow-step-complete]="step.completed" [class.build-workflow-step-active]="step.active" [attr.aria-current]="step.active ? 'step' : null">
+              @if (!first) { <span class="build-workflow-separator" aria-hidden="true">·</span> }
+              <span class="build-workflow-marker" aria-hidden="true">{{ step.completed ? '✓' : first ? '·' : '' }}</span>
+              <span>{{ step.label }}</span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+    @if (result.status === 'running') { <progress aria-label="Operation in progress"></progress> }
+  }
+  <hr />
+  <div class="build-log-output" appAutoScrollLogs role="log" aria-live="polite" aria-relevant="additions" tabindex="0" aria-label="Execution events">
+    @if (actions.logProjectId() === shownProjectId && actions.results()[shownProjectId ?? 0]?.label === 'Project build') {
+      @for (entry of actions.buildLogs(); track $index) {
+        <div class="build-log-line" [class.tm-error]="entry.level === 'ERROR'"><time>{{ entry.timestamp | date:'HH:mm:ss' }}</time> {{ entry.level }} {{ entry.function ?? entry.agent ?? 'agent' }} · {{ entry.event }}@if (entry.step) { · {{ entry.step }} }@if (entry.duration_ms !== undefined) { · {{ entry.duration_ms }} ms }@if (entry.error_type) { · {{ entry.error_type }} }</div>
+      } @empty { <p>Waiting for build execution logs…</p> }
+    } @else { <p>Operation details appear above.</p> }
+  </div>
+  @if (actions.logProjectId() === shownProjectId && actions.results()[shownProjectId ?? 0]?.label === 'Project build' && actions.buildLogsError()) { <p class="tm-error" role="status">{{ actions.buildLogsError() }}</p> }
+</dialog>

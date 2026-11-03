@@ -1,0 +1,91 @@
+<div class="projects-layout" [attr.aria-busy]="busy()">
+  <wo-card class="projects-editor">
+    <form #projectForm class="projects-form" [formGroup]="form" (ngSubmit)="saveProject()" novalidate>
+      @if (editing() !== null) { <h2 class="wo-card-title">Edit project</h2> }
+      <wo-text-input inputId="project-name" label="Project name" placeholder="e.g. Customer portal"
+        [control]="name" [required]="true" [submitted]="submitted()"
+        [error]="name.hasError('duplicate') ? 'A project with this name already exists.' : ''" />
+      <div class="wo-field">
+        <label class="wo-field-label" for="project-summary">Summary <span aria-hidden="true">*</span></label>
+        <textarea id="project-summary" [formControl]="summary" rows="3" required
+          placeholder="Describe this project."
+          [attr.aria-invalid]="summary.invalid && (summary.touched || submitted()) ? 'true' : null"
+          [attr.aria-describedby]="summary.invalid && (summary.touched || submitted()) ? 'project-summary-error' : null"></textarea>
+        @if (summary.invalid && (summary.touched || submitted())) {
+          <p class="wo-field-error" id="project-summary-error">{{ summary.hasError('required') ? 'Summary is required.' : 'Enter no more than 4000 characters.' }}</p>
+        }
+      </div>
+      <div class="projects-actions">
+        <button type="submit" class="tm-primary tm-button-compact" [disabled]="busy()"><wo-icon name="check" />{{ saving() ? 'Saving…' : 'Save' }}</button>
+        @if (editing() !== null) { <button type="button" class="tm-button-compact" [disabled]="busy()" (click)="cancelEdit()">Cancel</button> }
+        @if (saving()) { <wo-spinner label="Saving project" /> }
+      </div>
+      @if (store.error()) { <p class="wo-field-error" role="alert">{{ store.error() }}</p> }
+    </form>
+  </wo-card>
+  <wo-card class="projects-list" aria-label="Projects">
+    <div class="projects-cards">
+      @if (store.loading()) { <wo-spinner label="Loading projects" /> }
+      @for (project of store.orderedProjects(); track project.id) {
+        <article class="project-card" [class.project-card-active]="store.activeProject()?.id === project.id" [attr.aria-labelledby]="'project-heading-' + project.id">
+          <div class="project-title">
+            <h3 class="wo-card-title" [id]="'project-heading-' + project.id">{{ project.name }}</h3>
+            @if (store.activeProject()?.id === project.id) {
+              <span class="wo-project-tag">Active</span>
+            } @else {
+              <button type="button" class="tm-button-compact" [disabled]="busy()"
+                [attr.aria-label]="'Make ' + project.name + ' active'" (click)="selectProject(project.id)"><wo-icon name="check" />Make active</button>
+            }
+            <div class="project-more">
+              <button type="button" class="tm-button-compact project-more-trigger" [attr.aria-label]="'More options for ' + project.name" [attr.aria-expanded]="openMenu() === project.id" [disabled]="busy()" (click)="openMenu.set(openMenu() === project.id ? null : project.id)"><wo-icon name="more" /></button>
+              @if (openMenu() === project.id) {
+                <div class="project-options" [attr.aria-label]="'Options for ' + project.name">
+                  <button type="button" class="project-option-right" (click)="editProject(project)"><wo-icon name="edit" />Edit</button>
+                  <button type="button" class="project-option-right" (click)="askDelete(project)"><wo-icon name="trash" />Delete</button>
+                  <button type="button" [disabled]="!project.build_ready" (click)="openMenu.set(null); actions.download(project)"><wo-icon name="download" />Download project</button>
+                  <button type="button" [disabled]="!project.build_ready" (click)="openGithub(project)"><wo-icon name="github" />GitHub repository</button>
+                </div>
+              }
+            </div>
+          </div>
+          <p class="wo-muted project-summary">{{ project.summary }}</p>
+          @if (project.build_ready) {
+            <div class="projects-actions"><span class="wo-project-tag">Starter built</span><button type="button" class="tm-button-compact" [disabled]="busy()" (click)="actions.download(project)"><wo-icon name="download" />Download project</button><button type="button" class="tm-button-compact" [disabled]="busy()" (click)="openGithub(project)"><wo-icon name="github" />GitHub repository</button></div>
+          }
+          @if (actions.errors()[project.id] && store.activeId() !== project.id) { <p class="wo-field-error" role="alert">{{actions.errors()[project.id]}}</p> }
+          @if (project.repository) { <a [href]="project.repository.url" target="_blank" rel="noopener noreferrer">{{project.repository.owner}}/{{project.repository.name}}</a> }
+        </article>
+      } @empty {
+        @if (!store.loading() && !store.error()) { <p class="wo-muted">No projects yet. Save your first project to get started.</p> }
+      }
+      @if (store.error() && !store.loading() && !store.projects().length) {
+        <div class="projects-actions"><button type="button" class="tm-button-compact" [disabled]="busy()" (click)="store.load()"><wo-icon name="refresh" />Retry loading projects</button></div>
+      }
+    </div>
+  </wo-card>
+</div>
+<p class="wo-visually-hidden" role="status">{{ announcement() }}</p>
+
+<dialog #deleteDialog class="tm-dialog" aria-labelledby="delete-project-title" (cancel)="busy() && $event.preventDefault()">
+  <h2 id="delete-project-title">Delete project</h2>
+  <p>Delete {{deleteTarget()?.name}} from your projects?</p>
+  @if (store.error()) { <p class="wo-field-error" role="alert">{{store.error()}}</p> }
+  <div class="tm-dialog-actions"><button type="button" [disabled]="busy()" (click)="deleteDialog.close()">Cancel</button><button type="button" class="tm-primary" [disabled]="busy()" (click)="deleteProject()">{{store.loading() ? 'Deleting…' : 'Delete'}}</button></div>
+</dialog>
+<dialog #githubDialog class="tm-dialog project-github-dialog" aria-labelledby="github-project-title" (cancel)="$event.preventDefault(); closeGithub()">
+  <h2 id="github-project-title">GitHub repository</h2>
+  <form [formGroup]="githubForm" (ngSubmit)="configureGithub()" novalidate>
+    <fieldset [disabled]="actions.busy()">
+      <label for="github-owner">Account or organization</label><input id="github-owner" formControlName="owner" placeholder="Leave blank to use your GitHub account" autocomplete="off" />
+      <label for="github-repo">Repository name</label><input id="github-repo" formControlName="name" required />
+      <label for="github-token">GitHub access token</label>
+      <div class="project-token-row"><input id="github-token" formControlName="token" [type]="showToken() ? 'text' : 'password'" required autocomplete="off" spellcheck="false" /><button type="button" [attr.aria-label]="showToken() ? 'Hide access token' : 'Show access token'" (click)="showToken.set(!showToken())">{{showToken() ? 'Hide' : 'Show'}}</button></div>
+      <p class="wo-muted">Used for this push only. Requires repository contents write access; creating a repository also requires administration permission.</p>
+      <label class="project-create-repo"><input type="checkbox" formControlName="create" />Create a new private repository</label>
+      <p class="wo-muted">Configure pushes the built starter to the repository’s default branch. Matching file paths are updated; other files remain.</p>
+    </fieldset>
+    @if (githubSubmitted() && githubForm.invalid) { <p class="wo-field-error" role="alert">Enter a valid repository name, account name and access token.</p> }
+    @if (githubTarget(); as project) { @if (actions.errors()[project.id]) { <p class="wo-field-error" role="alert">{{actions.errors()[project.id]}}</p> } }
+    <div class="tm-dialog-actions"><button type="button" [disabled]="actions.busy()" (click)="closeGithub()">Cancel</button><button type="submit" class="tm-primary" [disabled]="actions.busy()">{{actions.busy() ? 'Pushing…' : 'Configure'}}</button></div>
+  </form>
+</dialog>

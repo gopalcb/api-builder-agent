@@ -1,0 +1,21 @@
+:host { display: block; }
+.search-layout { display: grid; grid-template-columns: minmax(0, 35fr) minmax(0, 65fr); gap: var(--wo-gap); align-items: start; }
+wo-card, wo-select, .search-form { min-width: 0; }
+.search-form, .search-drafts, .search-draft { display: grid; gap: 12px; }
+.search-form wo-text-input { display: grid; grid-template-columns: minmax(0, 1fr); }
+.search-form wo-select { display: block; }
+.search-form textarea { min-height: 80px; resize: none; padding: 6px 8px; font-size: 12px; line-height: 16px; }
+.search-form p, .search-draft p, .search-draft h3, .search-draft h4, dl, dd { margin: 0; }
+.search-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.search-actions h3 { flex: 1; font-family: ui-monospace, monospace; font-size: 11px; overflow-wrap: anywhere; }
+.search-draft { padding: 12px; background: #fff; border: 1px solid var(--wo-border); border-radius: 4px; overflow-wrap: anywhere; }
+.search-draft h4, .search-draft dt { font-size: 11px; font-weight: 600; }
+.search-draft ul, .search-draft ol { padding-left: 20px; margin-block: 8px 0; }
+.search-draft li, .search-draft dd { font-size: 12px; line-height: 1.6; }
+.search-draft summary { cursor: pointer; font-size: 12px; color: var(--wo-primary); }
+.search-draft summary:hover { text-decoration: underline; }
+.search-draft summary:focus-visible { outline: 2px solid var(--wo-primary); outline-offset: 4px; }
+.search-draft dl { display: grid; gap: 8px; margin-top: 12px; }
+.search-status { min-height: 16px; }
+.search-form button[type=submit] { min-width: 180px; }
+@media (max-width: 767px) { .search-layout { grid-template-columns: minmax(0, 1fr); } }
