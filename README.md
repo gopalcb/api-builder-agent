@@ -12,7 +12,7 @@ And the Angular application provides a visual way to define projects, entities, 
 
 ## A quick demo
 
-<video src="docs/My%20Movie.mp4" controls preload="metadata" width="100%">
+<video src="docs/demo.mp4" controls preload="metadata" width="100%">
   Your browser does not support embedded video.
 </video>
 
