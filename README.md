@@ -12,9 +12,9 @@ And the Angular application provides a visual way to define projects, entities, 
 
 ## A quick demo
 
-<video src="docs/demo.mp4" controls preload="metadata" width="100%">
-  Your browser does not support embedded video.
-</video>
+[![API Builder Agent demo — click to play](docs/demo-poster.svg)](docs/demo.mp4)
+
+Click the preview to play the full demo video.
 
 ## Why it exists
 
