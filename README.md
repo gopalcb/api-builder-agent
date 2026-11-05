@@ -1,6 +1,6 @@
 # API Builder Agent
 
-Design an API from a guided workspace, review the generated configuration, and export a safe starter bundle—without losing the reasoning, contracts, or decisions that shaped it.
+Design an API from a guided workspace, review the generated configuration, and export a tested local container bundle—without losing the reasoning, contracts, or decisions that shaped it.
 
 API Builder is a local-first, full-stack API design workbench. 
 
@@ -15,6 +15,12 @@ And the Angular application provides a visual way to define projects, entities, 
 <p><a href="https://1drv.ms/v/c/cb8c3cac74469fbc/IQCO688UzI0LQq7YokJ2XspGARNya53c8egrHBySqUNORAc?e=oECXIF">▶ Watch the API Builder demo on OneDrive</a></p>
 
 
+## How it works
+
+Read [API Builder Agent: from an entity model to a tested local API](docs/api-builder-agent-article.md) for a staged walkthrough with plain-text diagrams, a product API example, and links to the implementation.
+
+[Read the portfolio article](https://gopalcb.github.io/projects/api-builder-agent).
+
 ## Why it exists
 
 Turning an API idea into a deployable system usually means jumping between a data model, route definitions, auth policy, search design, infrastructure diagrams, tests, and documentation. API Builder keeps those decisions in one project workspace and makes the hand-offs explicit:
@@ -28,24 +34,31 @@ Turning an API idea into a deployable system usually means jumping between a dat
 
 ## Architecture at a glance
 
-```mermaid
-flowchart TD
-    U[Builder UI\nAngular standalone components] -->|HTTP /api + X-Project-ID| B[Flask API\nrequest validation + project context]
-    B --> P[(SQLite / SQLAlchemy\nproject snapshots and revisions)]
-    B --> W[Isolated worker process\nJSON stdin/stdout contract]
-    W --> R[Trusted runtime registry\nregistered agents only]
-    R --> C[PromptChain\ndraft → review]
-    C --> D[AgentRuntime]
-    D --> G[Fresh Deep Agents graph\nStateBackend + optional TodoList]
-    G --> L[LangChain model interface]
-    L --> X[CodexChatModel]
-    X --> K[openai-codex SDK\nexisting ChatGPT/Codex login]
-    G --> S[Validated structured output\nJSON Schema / ToolStrategy]
-    S --> W
-    W --> B
-    B --> P
-    B --> A[Starter checks, ZIP artifacts,\nOpenAPI, GitHub integration]
-    P --> U
+```text
+Angular project workspace
+          |
+          | /api + X-Project-ID
+          v
+Flask routes and services <----> SQLite project state
+          |
+          +--> Agent worker
+          |      |
+          |      v
+          |    Registered builder -> PromptChain: draft -> review
+          |      |
+          |      v
+          |    Fresh Deep Agents graph <-> CodexChatModel <-> Codex SDK
+          |      |
+          |      v
+          |    Schema-validated result -> review and save
+          |
+          +--> Explicit Build
+                 |
+                 v
+               Container template + implementation builder
+                 |
+                 v
+               Syntax and container tests -> fingerprint check -> ZIP
 ```
 
 ### The important boundary
