@@ -35,31 +35,46 @@ Turning an API idea into a deployable system usually means jumping between a dat
 ## Architecture at a glance
 
 ```text
-Angular project workspace
-          |
-          | /api + X-Project-ID
-          v
-Flask routes and services <----> SQLite project state
-          |
-          +--> Agent worker
-          |      |
-          |      v
-          |    Registered builder -> PromptChain: draft -> review
-          |      |
-          |      v
-          |    Fresh Deep Agents graph <-> CodexChatModel <-> Codex SDK
-          |      |
-          |      v
-          |    Schema-validated result -> review and save
-          |
-          +--> Explicit Build
-                 |
-                 v
-               Container template + implementation builder
-                 |
-                 v
-               Syntax and container tests -> fingerprint check -> ZIP
+┌─────────────────────────────────────┐
+│          ANGULAR WORKSPACE          │
+│   Projects, entities and endpoints  │
+└─────────────────────────────────────┘
+                   │
+          /api + X-Project-ID
+                   ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│            FLASK BACKEND            │       │         SQLITE / SQLALCHEMY         │
+│ Validate requests and project scope │ ◄───► │  Saved configuration and revisions  │
+└─────────────────────────────────────┘       └─────────────────────────────────────┘
+                   │
+                   ├─────────────────────────────────────────────┐
+          Generate / review                        Explicit Build
+                   ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│             AGENT WORKER            │       │             BUILD INPUT             │
+│    Registered workflow + deadline   │       │ Saved snapshot + container template │
+└─────────────────────────────────────┘       └─────────────────────────────────────┘
+                   │                                             │
+                   ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│             PROMPT CHAIN            │       │        IMPLEMENTATION BUILDER       │
+│        Draft and review steps       │       │      Same bounded agent runtime     │
+└─────────────────────────────────────┘       └─────────────────────────────────────┘
+                   │                                             │
+                   ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│       FRESH DEEP AGENTS GRAPH       │       │           BUILD VALIDATION          │
+│     CodexChatModel <-> Codex SDK    │       │    Syntax + isolated Docker tests   │
+└─────────────────────────────────────┘       └─────────────────────────────────────┘
+                   │                                             │
+                   ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│      SCHEMA-VALIDATED PROPOSAL      │       │           TESTED ARTIFACT           │
+│   Review and revision-checked save  │       │    Fingerprint check -> ZIP / Run   │
+└─────────────────────────────────────┘       └─────────────────────────────────────┘
 ```
+
+Agent results return to the workspace for review and saving. An explicit Build calls the implementation builder through the same agent runtime, tests its output, and saves an artifact only while the input fingerprint still matches.
 
 ### The important boundary
 
